@@ -18,7 +18,7 @@ plugin_version = "1.0.0"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
-plugin_description = """A simple plugin for download to sd card via MKS wifi¨"""
+plugin_description = """Octoprint plugin for fast upload file to SD-card over MKS WiFi module"""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
 plugin_author = "om2804"
