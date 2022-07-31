@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_mkswifisdcard/templates *
+recursive-include octoprint_mkswifisdcard/translations *
+recursive-include octoprint_mkswifisdcard/static *
