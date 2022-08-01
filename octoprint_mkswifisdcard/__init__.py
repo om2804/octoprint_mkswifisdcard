@@ -50,7 +50,7 @@ class mkswifisdcardPlugin(
 
         def set_upload_progress(progress):
             self._plugin_manager.send_plugin_message(
-                "mkswifisdcard", dict(progress=int(progress))
+                self._identifier, dict(progress=int(progress))
             )
         
         def run_upload():
@@ -69,16 +69,23 @@ class mkswifisdcardPlugin(
         return remote_name
 
     def upload_via_wifi(self, path, filename, host, callback):        
-        res = requests.post(
-            url="http://%s/upload?X-Filename=%s" % (host, filename),
-            data=ProgressUpload(path, callback),
-            headers={
-                "Content-Type": "application/octet-stream",
-                "Connection": "keep-alive",
-            },
-        )
+        try:
+            res = requests.post(
+                url="http://%s/upload?X-Filename=%s" % (host, filename),
+                data=ProgressUpload(path, callback),
+                headers={
+                    "Content-Type": "application/octet-stream",
+                    "Connection": "keep-alive",
+                },
+                timeout=60
+            )
+        except Exception as e:
+            self._logger.exception("Uploading to sdwire failed: {}".format(e))
+            self.notify_error_to_user("Uploading to sdwire failed: {}".format(e))
         
-    
+    def notify_error_to_user(self, message):
+        self._plugin_manager.send_plugin_message(self._identifier, dict(error=message))
+
     # TemplatePlugin mixin
     def get_template_configs(self):
         return [{"type": "settings", "custom_bindings": False}]
@@ -92,6 +99,24 @@ class mkswifisdcardPlugin(
         # Define your plugin's asset files to automatically include in the
         # core UI here.
         return {"js": ["js/mkswifisdcard.js"]}
+
+    # Softwareupdate hook
+    def get_update_information(self):
+        return {
+            "mkswifisdcard": {
+                "displayName": "mkswifisdcard",
+                "displayVersion": self._plugin_version,
+
+                # version check: github repository
+                "type": "github_release",
+                "user": "om2804",
+                "repo": "octoPrint-mkswifisdcard",
+                "current": self._plugin_version,
+
+                # update method: pip
+                "pip": "https://github.com/om2804/octoprint_mkswifisdcard/archive/{target_version}.zip",
+                }
+            }
 
 
 class ProgressUpload:
@@ -113,6 +138,7 @@ class ProgressUpload:
         return self.file_size
 
 
+
 # Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
 # OctoPrint 1.8.0 onwards only supports Python 3.
 __plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
@@ -124,5 +150,6 @@ def __plugin_load__():
 
     global __plugin_hooks__
     __plugin_hooks__ = {
-        "octoprint.printer.sdcardupload": __plugin_implementation__.custom_upload_to_sd
+        "octoprint.printer.sdcardupload": __plugin_implementation__.custom_upload_to_sd,
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }

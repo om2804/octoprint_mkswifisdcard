@@ -16,6 +16,14 @@ $(function () {
                 self.filesViewModel._setProgressBar(data["progress"], 'Uploading to sd - ' + data["progress"] + '%...', false);
             }
 
+            if (data.hasOwnProperty("error")) {
+                new PNotify({
+                    title: 'MKS WiFi SD-card Error',
+                    text: '<div class="row-fluid"><p>Error of uploading to sd-card over WiFi. Check your settings.</p><p><pre style="padding-top: 5px;">'+data["error"]+'</pre></p>',
+                    hide: true
+                });
+                return;
+            }
         }
     }
 
