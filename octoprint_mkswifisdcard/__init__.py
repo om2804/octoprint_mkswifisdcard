@@ -20,6 +20,7 @@ class mkswifisdcardPlugin(
 ):
     def on_after_startup(self):
         self._logger.info("MKS WiFi host: %s" % self._settings.get(["host"]))
+        self._logger.info("autoreconnect: %s" % self._settings.get(["autoreconnect"]))
 
     def custom_upload_to_sd(
         self,
@@ -41,6 +42,8 @@ class mkswifisdcardPlugin(
         sd_upload_started(filename, remote_name)
         start_time = time.time()
 
+        autoreconnect = self._settings.get(["autoreconnect"])
+
         def change_state_handler(event, data):
             if data["state_id"] == "OPERATIONAL":
                 sd_upload_succeeded(filename, remote_name, time.time() - start_time)
@@ -55,12 +58,17 @@ class mkswifisdcardPlugin(
         
         def run_upload():
             set_upload_progress(0)
-            printer.disconnect()
+            if autoreconnect:
+                printer.disconnect()
             self.upload_via_wifi(path, remote_name, self._settings.get(["host"]), set_upload_progress)
             set_upload_progress(100)
-            printer.connect()
+            if autoreconnect:
+                printer.connect()
+            else:
+                sd_upload_succeeded(filename, remote_name, time.time() - start_time)
             
-        eventManager().subscribe(Events.PRINTER_STATE_CHANGED, change_state_handler)
+        if autoreconnect:
+            eventManager().subscribe(Events.PRINTER_STATE_CHANGED, change_state_handler)
         run_upload()
         #thread = threading.Thread(target = run_upload)
         #thread.daemon = True
@@ -92,7 +100,7 @@ class mkswifisdcardPlugin(
     
     # SettingsPlugin mixin
     def get_settings_defaults(self):
-        return dict(host="")
+        return dict(host="", autoreconnect=False)
 
     # AssetPlugin mixin
     def get_assets(self):

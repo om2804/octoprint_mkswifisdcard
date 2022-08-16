@@ -6,4 +6,12 @@
             <span class="help-inline">{{ _('Enter host or IP') }}</span>
         </div>
     </div>
+
+    <div class="control-group">
+        <label class="control-label">{{ _('Autoreconnect') }}</label>
+        <div class="controls">            
+            <input type="checkbox" class="input-block-level" data-bind="checked: settings.plugins.mkswifisdcard.autoreconnect">
+            <span class="help-inline">{{ _('Disconnect printer before uploading file and connect after uploading file') }}</span>
+        </div>
+    </div>
 </form>
