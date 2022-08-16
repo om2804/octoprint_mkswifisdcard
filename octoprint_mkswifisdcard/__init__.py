@@ -34,7 +34,10 @@ class mkswifisdcardPlugin(
         **kwargs
     ):
 
-        remote_name = printer._get_free_remote_name(filename)
+        if printer._comm._capability_supported(printer._comm.CAPABILITY_EXTENDED_M20):
+            remote_name = filename
+        else:
+            remote_name = printer._get_free_remote_name(filename)
         self._logger.info(
             "Starting SDCard upload from {} {} to {}".format(path, filename, remote_name)
         )
