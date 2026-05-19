@@ -1,9 +1,4 @@
-# coding=utf-8
-
-import io
-import logging
 import os
-import threading
 import time
 
 import requests
@@ -16,11 +11,26 @@ class mkswifisdcardPlugin(
     octoprint.plugin.StartupPlugin,
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.TemplatePlugin,
-    octoprint.plugin.SettingsPlugin
+    octoprint.plugin.SettingsPlugin,
 ):
     def on_after_startup(self):
         self._logger.info("MKS WiFi host: %s" % self._settings.get(["host"]))
         self._logger.info("autoreconnect: %s" % self._settings.get(["autoreconnect"]))
+
+    def get_remote_name(self, printer, filename):
+        # OctoPrint 2.x
+        available_file_name = getattr(printer, "available_file_name", None)
+        if callable(available_file_name):
+            return available_file_name("/", filename)
+
+        # OctoPrint 1.x
+        get_free_remote_name = getattr(printer, "_get_free_remote_name", None)
+        if callable(get_free_remote_name):
+            return get_free_remote_name(filename)
+
+        raise RuntimeError(
+            "Printer does not expose a supported remote name API"
+        )
 
     def custom_upload_to_sd(
         self,
@@ -31,15 +41,13 @@ class mkswifisdcardPlugin(
         sd_upload_succeeded,
         sd_upload_failed,
         *args,
-        **kwargs
+        **kwargs,
     ):
-
-        if printer._comm._capability_supported(printer._comm.CAPABILITY_EXTENDED_M20):
-            remote_name = filename
-        else:
-            remote_name = printer._get_free_remote_name(filename)
+        remote_name = self.get_remote_name(printer, filename)
         self._logger.info(
-            "Starting SDCard upload from {} {} to {}".format(path, filename, remote_name)
+            "Starting SDCard upload from {} {} to {}".format(
+                path, filename, remote_name
+            )
         )
 
         sd_upload_started(filename, remote_name)
@@ -58,42 +66,44 @@ class mkswifisdcardPlugin(
             self._plugin_manager.send_plugin_message(
                 self._identifier, dict(progress=int(progress))
             )
-        
+
         def run_upload():
             set_upload_progress(0)
             if autoreconnect:
                 printer.disconnect()
-            self.upload_via_wifi(path, remote_name, self._settings.get(["host"]), set_upload_progress)
+            self.upload_via_wifi(
+                path, remote_name, self._settings.get(["host"]), set_upload_progress
+            )
             set_upload_progress(100)
             if autoreconnect:
                 printer.connect()
             else:
                 sd_upload_succeeded(filename, remote_name, time.time() - start_time)
-            
+
         if autoreconnect:
             eventManager().subscribe(Events.PRINTER_STATE_CHANGED, change_state_handler)
         run_upload()
-        #thread = threading.Thread(target = run_upload)
-        #thread.daemon = True
-        #thread.start()      
+        # thread = threading.Thread(target = run_upload)
+        # thread.daemon = True
+        # thread.start()
 
         return remote_name
 
-    def upload_via_wifi(self, path, filename, host, callback):        
+    def upload_via_wifi(self, path, filename, host, callback):
         try:
-            res = requests.post(
+            requests.post(
                 url="http://%s/upload?X-Filename=%s" % (host, filename),
                 data=ProgressUpload(path, callback),
                 headers={
                     "Content-Type": "application/octet-stream",
                     "Connection": "keep-alive",
                 },
-                timeout=60
+                timeout=60,
             )
         except Exception as e:
             self._logger.exception("Uploading to sdwire failed: {}".format(e))
             self.notify_error_to_user("Uploading to sdwire failed: {}".format(e))
-        
+
     def notify_error_to_user(self, message):
         self._plugin_manager.send_plugin_message(self._identifier, dict(error=message))
 
@@ -101,6 +111,9 @@ class mkswifisdcardPlugin(
     def get_template_configs(self):
         return [{"type": "settings", "custom_bindings": False}]
     
+    def is_template_autoescaped(self):
+        return True
+
     # SettingsPlugin mixin
     def get_settings_defaults(self):
         return dict(host="", autoreconnect=False)
@@ -117,17 +130,15 @@ class mkswifisdcardPlugin(
             "mkswifisdcard": {
                 "displayName": "mkswifisdcard",
                 "displayVersion": self._plugin_version,
-
                 # version check: github repository
                 "type": "github_release",
                 "user": "om2804",
                 "repo": "octoPrint-mkswifisdcard",
                 "current": self._plugin_version,
-
                 # update method: pip
                 "pip": "https://github.com/om2804/octoprint_mkswifisdcard/archive/{target_version}.zip",
-                }
             }
+        }
 
 
 class ProgressUpload:
@@ -149,7 +160,6 @@ class ProgressUpload:
         return self.file_size
 
 
-
 # Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
 # OctoPrint 1.8.0 onwards only supports Python 3.
 __plugin_pythoncompat__ = ">=3,<4"  # Only Python 3
@@ -162,5 +172,5 @@ def __plugin_load__():
     global __plugin_hooks__
     __plugin_hooks__ = {
         "octoprint.printer.sdcardupload": __plugin_implementation__.custom_upload_to_sd,
-        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+        "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
     }

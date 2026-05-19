@@ -1,0 +1,42 @@
+[build-system]
+requires = [
+    "setuptools>=68",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mks-wifi-sdcard"
+version = "1.1.0"
+description = "Octoprint plugin for fast upload file to SD-card over MKS WiFi module"
+authors = [
+    { name = "om2804", email = "om2804@mail.ru" },
+]
+requires-python = ">=3,<4"
+dependencies = []
+dynamic = [
+    "license",
+]
+
+[project.entry-points."octoprint.plugin"]
+mkswifisdcard = "octoprint_mkswifisdcard"
+
+[project.urls]
+Homepage = "https://github.com/om2804/octoprint_mkswifisdcard"
+
+[project.optional-dependencies]
+develop = [
+    "go-task-bin",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+    "octoprint_mkswifisdcard",
+    "octoprint_mkswifisdcard.*",
+]
