@@ -17,6 +17,21 @@ class mkswifisdcardPlugin(
         self._logger.info("MKS WiFi host: %s" % self._settings.get(["host"]))
         self._logger.info("autoreconnect: %s" % self._settings.get(["autoreconnect"]))
 
+    def get_remote_name(self, printer, filename):
+        # OctoPrint 2.x
+        available_file_name = getattr(printer, "available_file_name", None)
+        if callable(available_file_name):
+            return available_file_name("/", filename)
+
+        # OctoPrint 1.x
+        get_free_remote_name = getattr(printer, "_get_free_remote_name", None)
+        if callable(get_free_remote_name):
+            return get_free_remote_name(filename)
+
+        raise RuntimeError(
+            "Printer does not expose a supported remote name API"
+        )
+
     def custom_upload_to_sd(
         self,
         printer,
@@ -28,11 +43,7 @@ class mkswifisdcardPlugin(
         *args,
         **kwargs,
     ):
-
-        if printer._comm._capability_supported(printer._comm.CAPABILITY_EXTENDED_M20):
-            remote_name = filename
-        else:
-            remote_name = printer._get_free_remote_name(filename)
+        remote_name = self.get_remote_name(printer, filename)
         self._logger.info(
             "Starting SDCard upload from {} {} to {}".format(
                 path, filename, remote_name
@@ -80,7 +91,7 @@ class mkswifisdcardPlugin(
 
     def upload_via_wifi(self, path, filename, host, callback):
         try:
-            res = requests.post(
+            requests.post(
                 url="http://%s/upload?X-Filename=%s" % (host, filename),
                 data=ProgressUpload(path, callback),
                 headers={
