@@ -19,7 +19,7 @@ $(function () {
             if (data.hasOwnProperty("error")) {
                 new PNotify({
                     title: 'MKS WiFi SD-card Error',
-                    text: '<div class="row-fluid"><p>Error of uploading to sd-card over WiFi. Check your settings.</p><p><pre style="padding-top: 5px;">'+data["error"]+'</pre></p>',
+                    text: '<div class="row-fluid"><p>Error of uploading to sd-card over WiFi. Check your settings.</p><p><pre style="padding-top: 5px;">'+_.escape(data["error"])+'</pre></p>',
                     hide: true
                 });
                 return;
