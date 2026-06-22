@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mks-wifi-sdcard"
-version = "1.1.0"
+version = "1.2.0"
 description = "Octoprint plugin for fast upload file to SD-card over MKS WiFi module"
 authors = [
     { name = "om2804", email = "om2804@mail.ru" },
